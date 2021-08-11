@@ -32,6 +32,13 @@ const menu = () => {
           "Add Role",
           "Add Department",
           "Update Employee Role",
+          "Update Employee's manager",
+          "View Employee's by manager",
+          "View Employee's by department",
+          "Delete Employee",
+          "Delete Role",
+          "Delete Department",
+          "Budget by Department",
         ],
       },
     ])
@@ -52,6 +59,20 @@ const menu = () => {
         return addDepartment();
       } else if (menu === "Update Employee Role") {
         return updateEmployee();
+      } else if (menu === "Update Employee's manager") {
+        return updateManager();
+      } else if (menu === "View Employee's by manager") {
+        return viewByManager();
+      } else if (menu === "View Employee's by department") {
+        return viewByDepartment();
+      } else if (menu === "Delete Employee") {
+        return deleteEmployee();
+      } else if (menu === "Delete Role") {
+        return deleteRole();
+      } else if (menu === "Delete Department") {
+        return deleteDepartment();
+      } else if (menu === "Budget by Department") {
+        return departmentBudget();
       }
     });
 };
@@ -149,62 +170,66 @@ const addEmployee = () => {
           .then((answer) => {
             const role = answer.role;
             tempHolder.push(role);
-            console.log(tempHolder);
-            db.query(`SELECT * FROM employee`, (err, res) => {
-              if (err) {
-                console.log(err);
-              }
-              const managerChoices = res.map(
-                ({ id, first_name, last_name }) => ({
-                  name: first_name + " " + last_name,
-                  value: id,
-                })
-              );
+            //console.log(tempHolder);
+            db.query(
+              `SELECT * FROM employee WHERE manager_id is NULL `,
+              (err, res) => {
+                if (err) {
+                  console.log(err);
+                }
+                const managerChoices = res.map(
+                  ({ id, first_name, last_name }) => ({
+                    name: first_name + " " + last_name,
+                    value: id,
+                  })
+                );
 
-              inquirer
-                .prompt([
-                  {
-                    //check on manager
-                    type: "confirm",
-                    name: "confirm",
-                    message: "Would you like to add a Manager?",
-                    default: false,
-                  },
-                  {
-                    type: "list",
-                    name: "manager",
-                    message: "Select a manager ",
-                    choices: managerChoices,
-                    when: function (answers) {
-                      return answers.confirm !== false;
+                inquirer
+                  .prompt([
+                    {
+                      //check on manager
+                      type: "confirm",
+                      name: "confirm",
+                      message: "Would you like to add a Manager?",
+                      default: false,
                     },
-                  },
-                ])
-                .then((answer) => {
-                  let manager;
-                  if (answers.manager) {
-                    manager = answer.manager;
-                  } else {
-                    manager = null;
-                  }
-                  tempHolder.push(manager);
-                  console.log(tempHolder);
-                  db.query(
-                    `INSERT INTO employee (first_name, last_name, role_id, manager_id) 
-                  Values (?, ?, ?, ?)`,
-                    tempHolder,
-                    (err, res) => {
-                      if (err) {
-                        console.log(err);
-                      }
-
-                      console.log("Employee successfully added!");
-
-                      menu();
+                    {
+                      type: "list",
+                      name: "manager",
+                      message: "Select a manager ",
+                      choices: managerChoices,
+                      when: function (answers) {
+                        return answers.confirm !== false;
+                      },
+                    },
+                  ])
+                  .then((answer) => {
+                    console.log(answer.manager);
+                    let manager;
+                    if (answer.manager) {
+                      manager = answer.manager;
+                    } else {
+                      manager = null;
                     }
-                  );
-                });
-            });
+                    tempHolder.push(manager);
+                    console.log(tempHolder);
+                    db.query(
+                      `INSERT INTO employee (first_name, last_name, role_id, manager_id) 
+                  Values (?, ?, ?, ?)`,
+                      tempHolder,
+                      (err, res) => {
+                        if (err) {
+                          console.log(err);
+                        }
+
+                        console.log("Employee successfully added!");
+
+                        menu();
+                      }
+                    );
+                  });
+              }
+            );
           });
       });
     });
@@ -330,6 +355,272 @@ const updateEmployee = () => {
               );
             });
         });
+      });
+  });
+};
+const updateManager = () => {
+  db.query(`SELECT * FROM employee`, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const employeeChoices = res.map(({ id, first_name, last_name }) => ({
+      name: first_name + " " + last_name,
+      value: id,
+    }));
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "select which employee to update",
+          choices: employeeChoices,
+        },
+      ])
+      .then((answer) => {
+        const tempHolder = [answer.employee];
+        db.query(
+          `SELECT * FROM employee WHERE manager_id is NULL `,
+          (err, res) => {
+            if (err) {
+              console.log(err);
+            }
+            const managerChoices = res.map(({ id, first_name, last_name }) => ({
+              name: first_name + " " + last_name,
+              value: id,
+            }));
+
+            inquirer
+              .prompt({
+                type: "list",
+                name: "manager",
+                message: "Select new manager",
+                choices: managerChoices,
+              })
+              .then((answer) => {
+                tempHolder.unshift(answer.manager);
+                db.query(
+                  `UPDATE employee SET manager_id = ? WHERE id = ?`,
+                  tempHolder,
+                  (err, res) => {
+                    if (err) {
+                      console.log(err);
+                    }
+
+                    console.log("Employee manager successfully updated!");
+                    console.log(tempHolder);
+
+                    menu();
+                  }
+                );
+              });
+          }
+        );
+      });
+  });
+};
+viewByManager = () => {
+  db.query(`SELECT * FROM employee WHERE manager_id is NULL `, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const managerChoices = res.map(({ id, first_name, last_name }) => ({
+      name: first_name + " " + last_name,
+      value: id,
+    }));
+
+    inquirer
+      .prompt({
+        type: "list",
+        name: "manager",
+        message: "Select which manager",
+        choices: managerChoices,
+      })
+      .then((answer) => {
+        const manager = answer.manager;
+        db.query(
+          `SELECT CONCAT(first_name," ",last_name)AS name FROM employee WHERE manager_id=?`,
+          manager,
+          (err, res) => {
+            if (err) {
+              console.log(err);
+            }
+
+            console.table(res);
+            menu();
+          }
+        );
+      });
+  });
+};
+viewByDepartment = () => {
+  db.query(`SELECT * FROM department `, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const departmentChoices = res.map(({ id, name }) => ({
+      name: name,
+      value: id,
+    }));
+
+    inquirer
+      .prompt({
+        type: "list",
+        name: "department",
+        message: "Select which department",
+        choices: departmentChoices,
+      })
+      .then((answer) => {
+        const department = answer.department;
+        db.query(
+          `SELECT CONCAT(first_name," ",last_name)AS name 
+          FROM employee 
+          LEFT JOIN role ON role.id = employee.role_id
+          LEFT JOIN department ON department.id = role.department_id
+          WHERE department_id=?`,
+          department,
+          (err, res) => {
+            if (err) {
+              console.log(err);
+            }
+
+            console.table(res);
+            menu();
+          }
+        );
+      });
+  });
+};
+deleteEmployee = () => {
+  db.query(`SELECT * FROM employee`, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const employeeChoices = res.map(({ id, first_name, last_name }) => ({
+      name: first_name + " " + last_name,
+      value: id,
+    }));
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "select which employee to delete",
+          choices: employeeChoices,
+        },
+      ])
+      .then((answer) => {
+        const employee = answer.employee;
+        db.query(`DELETE FROM employee WHERE id = ?`, employee, (err, res) => {
+          if (err) {
+            console.log(err);
+          }
+          console.log("crusher of hope");
+          menu();
+        });
+      });
+  });
+};
+const deleteRole = () => {
+  db.query(`SELECT * FROM role`, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const roleChoices = res.map(({ id, title }) => ({
+      name: title,
+      value: id,
+    }));
+
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "role",
+          message: "Select role to delete",
+          choices: roleChoices,
+        },
+      ])
+      .then((answer) => {
+        const role = answer.role;
+        db.query(`DELETE FROM role WHERE id = ?`, role, (err, res) => {
+          if (err) {
+            console.log(err);
+          }
+          console.log("crusher of hope");
+          menu();
+        });
+      });
+  });
+};
+const deleteDepartment = () => {
+  db.query(`SELECT * FROM department`, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const departmentChoices = res.map(({ id, name }) => ({
+      name: name,
+      value: id,
+    }));
+
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "department",
+          message: "Select department to delete",
+          choices: departmentChoices,
+        },
+      ])
+      .then((answer) => {
+        const department = answer.department;
+        db.query(
+          `DELETE FROM department WHERE id = ?`,
+          department,
+          (err, res) => {
+            if (err) {
+              console.log(err);
+            }
+            console.log("crusher of hope");
+            menu();
+          }
+        );
+      });
+  });
+};
+const departmentBudget = () => {
+  db.query(`SELECT * FROM department`, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    const departmentChoices = res.map(({ id, name }) => ({
+      name: name,
+      value: id,
+    }));
+
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "department",
+          message: "Select which department budget",
+          choices: departmentChoices,
+        },
+      ])
+      .then((answer) => {
+        const deptartment = answer.department;
+
+        db.query(
+          `SELECT SUM(salary) AS budget FROM role WHERE department_id = ?`,
+          deptartment,
+          (err, res) => {
+            if (err) {
+              console.log(err);
+            }
+
+            console.table(res);
+
+            menu();
+          }
+        );
       });
   });
 };
