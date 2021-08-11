@@ -15,6 +15,7 @@ db.connect((err) => {
   if (err) throw err;
   console.log("Database connected.");
   menu();
+  //addEmployee();
 });
 const menu = () => {
   inquirer
@@ -43,6 +44,8 @@ const menu = () => {
         return viewAllRoles();
       } else if (menu === "View All Departments") {
         return viewAllDepartments();
+      } else if (menu === "Add Employee") {
+        return addEmployee();
       }
     });
 };
@@ -88,4 +91,115 @@ const viewAllDepartments = () => {
     console.table(res);
     menu();
   });
+};
+const addEmployee = () => {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "first",
+        message: "Please enter employee's first name",
+        validate: (first) => {
+          if (first) {
+            return true;
+          } else {
+            console.log("Enter the employee's first name");
+          }
+        },
+      },
+      {
+        type: "input",
+        name: "last",
+        message: "Please enter employee's last name",
+        validate: (last) => {
+          if (last) {
+            return true;
+          } else {
+            console.log("Enter employee's last name");
+          }
+        },
+      },
+    ])
+    .then((answers) => {
+      const tempHolder = [answers.first, answers.last];
+      db.query(`SELECT role.id, role.title FROM role`, (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        const roleChoices = res.map(({ id, title }) => ({
+          name: title,
+          value: id,
+        }));
+
+        inquirer
+          .prompt([
+            {
+              type: "list",
+              name: "role",
+              message: "Select a role ",
+              choices: roleChoices,
+            },
+          ])
+          .then((answer) => {
+            const role = answer.role;
+            tempHolder.push(role);
+            console.log(tempHolder);
+            db.query(`SELECT * FROM employee`, (err, res) => {
+              if (err) {
+                console.log(err);
+              }
+              const managerChoices = res.map(
+                ({ id, first_name, last_name }) => ({
+                  name: first_name + " " + last_name,
+                  value: id,
+                })
+              );
+
+              inquirer
+                .prompt([
+                  {
+                    //check on manager
+                    type: "confirm",
+                    name: "confirm",
+                    message: "Would you like to add a Manager?",
+                    default: false,
+                  },
+                  {
+                    type: "list",
+                    name: "manager",
+                    message: "Select a manager ",
+                    choices: managerChoices,
+                    when: function (answers) {
+                      return answers.confirm !== false;
+                    },
+                  },
+                ])
+                .then((answer) => {
+                  let manager;
+                  if (answers.manager) {
+                    manager = answer.manager;
+                  } else {
+                    manager = null;
+                  }
+                  tempHolder.push(manager);
+                  console.log(tempHolder);
+                  db.query(
+                    `INSERT INTO employee (first_name, last_name, role_id, manager_id) 
+                  Values (?, ?, ?, ?)`,
+                    tempHolder,
+                    (err, res) => {
+                      if (err) {
+                        console.log(err);
+                      }
+
+                      console.log("Employee successfully added!");
+
+                      menu();
+                    }
+                  );
+                });
+            });
+          });
+      });
+    });
 };
