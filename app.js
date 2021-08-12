@@ -312,6 +312,7 @@ const addDepartment = () => {
       );
     });
 };
+
 const updateEmployee = () => {
   //get employees
   db.query(`SELECT * FROM employee`, (err, res) => {
@@ -363,7 +364,7 @@ const updateEmployee = () => {
                     console.log(err);
                   }
                   console.log("Employee role successfully updated!");
-                  console.log(tempHolder);
+
                   menu();
                 }
               );
@@ -426,7 +427,6 @@ const updateManager = () => {
                       console.log(err);
                     }
                     console.log("Employee manager successfully updated!");
-                    console.log(tempHolder);
                     menu();
                   }
                 );
@@ -438,15 +438,17 @@ const updateManager = () => {
 };
 
 viewByManager = () => {
+  //get managers
   db.query(`SELECT * FROM employee WHERE manager_id is NULL `, (err, res) => {
     if (err) {
       console.log(err);
     }
+    //assign managers
     const managerChoices = res.map(({ id, first_name, last_name }) => ({
       name: first_name + " " + last_name,
       value: id,
     }));
-
+    //select manager
     inquirer
       .prompt({
         type: "list",
@@ -456,6 +458,7 @@ viewByManager = () => {
       })
       .then((answer) => {
         const manager = answer.manager;
+        //show employees by manager
         db.query(
           `SELECT CONCAT(first_name," ",last_name)AS name FROM employee WHERE manager_id=?`,
           manager,
@@ -463,7 +466,6 @@ viewByManager = () => {
             if (err) {
               console.log(err);
             }
-
             console.table(res);
             menu();
           }
@@ -471,16 +473,19 @@ viewByManager = () => {
       });
   });
 };
+
 viewByDepartment = () => {
+  //get depos
   db.query(`SELECT * FROM department `, (err, res) => {
     if (err) {
       console.log(err);
     }
+    //assign depos
     const departmentChoices = res.map(({ id, name }) => ({
       name: name,
       value: id,
     }));
-
+    //select depos
     inquirer
       .prompt({
         type: "list",
@@ -490,6 +495,7 @@ viewByDepartment = () => {
       })
       .then((answer) => {
         const department = answer.department;
+        //show employees by selected depo
         db.query(
           `SELECT CONCAT(first_name," ",last_name)AS name 
           FROM employee 
@@ -501,7 +507,6 @@ viewByDepartment = () => {
             if (err) {
               console.log(err);
             }
-
             console.table(res);
             menu();
           }
@@ -521,15 +526,18 @@ deleteQuery = (a, b) => {
 };
 
 deleteEmployee = () => {
+  //get employees
   db.query(`SELECT * FROM employee`, (err, res) => {
     if (err) {
       console.log(err);
     }
+    //assigin emplyoees
     const employeeChoices = res.map(({ id, first_name, last_name }) => ({
       name: first_name + " " + last_name,
       value: id,
     }));
     inquirer
+      //selected employee
       .prompt([
         {
           type: "list",
@@ -540,10 +548,12 @@ deleteEmployee = () => {
       ])
       .then((answer) => {
         const employee = answer.employee;
+        //boot employee
         deleteQuery("employee", employee);
       });
   });
 };
+
 const deleteRole = () => {
   db.query(`SELECT * FROM role`, (err, res) => {
     if (err) {
@@ -569,6 +579,7 @@ const deleteRole = () => {
       });
   });
 };
+
 const deleteDepartment = () => {
   db.query(`SELECT * FROM department`, (err, res) => {
     if (err) {
@@ -595,6 +606,7 @@ const deleteDepartment = () => {
   });
 };
 const departmentBudget = () => {
+  //get depos
   db.query(`SELECT * FROM department`, (err, res) => {
     if (err) {
       console.log(err);
@@ -604,6 +616,7 @@ const departmentBudget = () => {
       value: id,
     }));
     inquirer
+      //select depo
       .prompt([
         {
           type: "list",
@@ -614,6 +627,7 @@ const departmentBudget = () => {
       ])
       .then((answer) => {
         const deptartment = answer.department;
+        //add salaries in depo call that a budget...
         db.query(
           `SELECT SUM(salary) AS budget FROM role WHERE department_id = ?`,
           deptartment,
